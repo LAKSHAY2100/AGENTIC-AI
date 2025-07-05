@@ -5,4 +5,4 @@ class BasicChatbotNode:
         self.llm = model
     
     def process(self , state:State):
-        return {'messages':self.llm.invoke(state['messages'])}
+        return {'messages':[self.llm.invoke(state['messages'])]}
