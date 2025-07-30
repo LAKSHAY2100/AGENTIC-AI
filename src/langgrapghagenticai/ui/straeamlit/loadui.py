@@ -3,6 +3,7 @@ import os
 from datetime import date
 
 from langchain_core.messages import AIMessage,HumanMessage
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 from src.langgrapghagenticai.ui.uiconfigfile import Config
 class loadstreamlitUI:
     def __init__(self):
@@ -29,9 +30,14 @@ class loadstreamlitUI:
         st.session_state.IsFetchButtonClicked = False
         st.session_state.IsSDLC = False
 
+
         with st.sidebar:
             llm_options = self.config.get__llm__option()
             usecase_options = self.config.get__usecase__option()
+
+            ctx = get_script_run_ctx()
+            if ctx is not None:
+                self.user_controls['session']=ctx.session_id
 
             # LLM selection
             self.user_controls["selected_llm"] = st.selectbox("Select LLM", llm_options)
@@ -49,6 +55,7 @@ class loadstreamlitUI:
                    
 
             self.user_controls["selected_usecase"] = st.selectbox("selected usecase",usecase_options)
+
 
             if self.user_controls["selected_usecase"] =="Chatbot with Tool" or self.user_controls["selected_usecase"] =="AI News" :
                 # API key input

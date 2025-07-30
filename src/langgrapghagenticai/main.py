@@ -4,7 +4,6 @@ from src.langgrapghagenticai.ui.straeamlit.loadui import loadstreamlitUI
 from src.langgrapghagenticai.LLMS.groqllms import Groqllm
 from src.langgrapghagenticai.graphs.graph_builder import Graphbuilder
 from src.langgrapghagenticai.ui.straeamlit.display_result import DisplayResultStreamlit
-
 # MAIN Function START
 def load_langgraph_agenticai_app():
     """
@@ -17,10 +16,16 @@ def load_langgraph_agenticai_app():
     # Load UI
     ui = loadstreamlitUI()
     user_input = ui.load_streamlit_ui()
-
     if not user_input:
         st.error("Error: Failed to load user input from the UI.")
         return
+
+    # Access session ID from user_controls
+    session = user_input.get('session')
+    if session:
+        st.sidebar.info(f"Session ID: {session}")
+
+    session = user_input.get('session')
 
     # Text input for user message
     if st.session_state.IsFetchButtonClicked:
@@ -44,7 +49,7 @@ def load_langgraph_agenticai_app():
             graph_builder = Graphbuilder(model)
             try:
                 graph=graph_builder.setup_graph(usecase)
-                DisplayResultStreamlit(usecase,graph,user_message).diplay_result_on_ui()
+                DisplayResultStreamlit(usecase,graph,user_message, model, session).diplay_result_on_ui()
             except Exception as e:
                 st.error(f"Error: Graph Setup Failes {e}")
                 return

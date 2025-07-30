@@ -2,34 +2,58 @@ import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 import json
 from pprint import pprint
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+
+chat_store = {}
 
 class DisplayResultStreamlit:
-    def __init__(self,usecase,graph,user_message) -> None:
+    def __init__(self,usecase,graph,user_message,model, session_id=None) -> None:
         self.usecase = usecase
         self.graph = graph
         self.user_message = user_message
-    
+        self.session_id = session_id
+        self.llm = model
+
     def diplay_result_on_ui(self):
         usecase=self.usecase
         graph = self.graph
         user_message = self.user_message
+        session=self.session_id
+        model = self.llm
         
-        # Initialize chat history if not present
-        if "chat_history" not in st.session_state:
-            st.session_state.chat_history = []
-
-        # Add the new user message to history
-        st.session_state.chat_history.append({"role": "user", "content": user_message})
+        # FUNCTION TO STORE AND UPDATE BaseChatMessageHistory
+        def get_session_history(session_id:str)->BaseChatMessageHistory:
+            if session_id not in chat_store:
+                # messages are stored in-memory means ram ,,, we can also store in database but not doing right now
+                chat_store[session_id]=ChatMessageHistory()
+            return chat_store[session_id]
+        
+        with_message_history=RunnableWithMessageHistory(model,get_session_history)
         
         if usecase == "Basic Chatbot":
-            for event in graph.stream({'messages':("user",user_message)}):
-                print(event.values())
-                for value in event.values():
-                    print(value['messages'])
-                    with st.chat_message("user"):
-                        st.write(user_message)
-                    with st.chat_message("assistant"):
-                        st.write(value["messages"].content)
+            # Create messages for the model
+            messages = [{"role": "user", "content": user_message}]
+            
+            # Invoke the model with message history
+            response = with_message_history.invoke(
+                messages,
+                config={"configurable": {"session_id": session}}
+            )
+            
+            
+            # Display chat history
+            history = get_session_history(session)
+            if history.messages:
+                st.subheader("📝 Chat History")
+                for msg in history.messages:
+                    if hasattr(msg, 'type') and msg.type == 'human':
+                        with st.chat_message("user"):
+                            st.write(msg.content)
+                    elif hasattr(msg, 'type') and msg.type == 'ai':
+                        with st.chat_message("assistant"):
+                            st.write(msg.content)
 
         elif usecase=="Chatbot with Tool":
              # Prepare state and invoke the graph
@@ -73,8 +97,3 @@ class DisplayResultStreamlit:
                         mime="text/markdown"
                     )
                 st.success(f"✅ Summary saved to {AI_NEWS_PATH}")
-        # else:
-        #     # Display the full chat history for other usecases
-        #     for msg in st.session_state.chat_history:
-        #         with st.chat_message(msg["role"]):
-        #             st.write(msg["content"])
